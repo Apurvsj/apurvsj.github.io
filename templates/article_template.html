@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+    img { max-width: 100%; border-radius: 12px; }
+    .attribution { font-size: 0.9rem; color: #555; margin-top: 5px; }
+    h1 { font-size: 2rem; margin-bottom: 1rem; }
+    p { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>{{ title }}</h1>
+
+  {% if image %}
+  <div>
+    <img src="{{ image.image_url }}" alt="Related visual">
+    <p class="attribution">
+      Photo by
+      <a href="{{ image.photographer_url }}" target="_blank">{{ image.photographer }}</a>
+      on
+      <a href="https://unsplash.com" target="_blank">Unsplash</a>
+    </p>
+  </div>
+  {% endif %}
+
+  <div>
+    {{ body | safe }}
+  </div>
+</body>
+</html>

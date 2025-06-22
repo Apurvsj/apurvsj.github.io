@@ -1,0 +1,4 @@
+Flask
+openai
+pytrends
+jinja2
