@@ -1,59 +1,49 @@
-from openai import OpenAI
-from pytrends.request import TrendReq
-from secretsy import openai_api_key
-from jinja2 import Environment, FileSystemLoader
 import os
+from datetime import date
+from dotenv import load_dotenv
+from renderer import render_article_html
+from index_updater import update_index
+from openai import OpenAI
 
-client = OpenAI(api_key=openai_api_key)
+load_dotenv()
+client = OpenAI()  # This automatically reads from OPENAI_API_KEY in your .env
 
-def fetch_trending_keywords():
-    pytrends = TrendReq()
-    attempts = [
-        ("real-time trending", "india"),
-        ("real-time trending", "united_states"),
-        ("daily trending", "india"),
-        ("daily trending", "united_states"),
-    ]
+# Replace with your actual trending topics or dynamic fetch
+trending_topics = [
+    "India Stock Market Today",
+    "AI Tools 2025",
+    "How to Use ChatGPT in Education",
+    "Latest Cricket Match Summary",
+    "Top 10 Travel Destinations 2025",
+]
 
-    for label, region in attempts:
-        try:
-            print(f"🌐 Trying {label}: {region.title()}")
-            if label == "real-time trending":
-                keywords_df = pytrends.realtime_trending_searches(pn=region)
-            else:
-                keywords_df = pytrends.trending_searches(pn=region)
-            return keywords_df.iloc[:, 0].head(5).tolist()
-        except Exception as e:
-            print(f"⚠️ Failed: {region.title()} {label}. Trying next...")
+os.makedirs("articles", exist_ok=True)
 
-    print("❌ All attempts failed: Google Trends unavailable.")
-    print("⚡ Using fallback keywords.")
-    return ["AI in Education", "Sustainable Travel", "ChatGPT Plugins", "Electric Vehicles 2025", "Space Tourism India"]
-
-def generate_article(keyword):
-    prompt = f"""Write a 600-word SEO-optimized blog post on '{keyword}'.
-Include a catchy title, introduction, three subheadings, conclusion, and a 160-character meta description."""
-
+def generate_article(topic):
     response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "Write a detailed, SEO-optimized news article in a zingy tone."},
+            {"role": "user", "content": f"Write a blog post on: {topic}"},
+        ],
         temperature=0.7,
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content.strip()
 
-def render_to_html(title, body, filename):
-    env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('blog_template.html')
-    output = template.render(title=title, body=body)
+def slugify(text):
+    return text.lower().replace(" ", "-").replace("?", "").replace(",", "")
 
-    os.makedirs("articles", exist_ok=True)
-    with open(f"articles/{filename}.html", "w", encoding="utf-8") as f:
-        f.write(output)
+def main():
+    links = []
+    for topic in trending_topics:
+        content = generate_article(topic)
+        slug = slugify(topic)
+        filename = f"{slug}.html"
+        filepath = os.path.join("articles", filename)
+        render_article_html(topic, content, filepath)
+        links.append((topic, f"articles/{filename}"))
+    
+    update_index(links)
 
 if __name__ == "__main__":
-    keywords = fetch_trending_keywords()
-    for keyword in keywords:
-        content = generate_article(keyword)
-        filename = keyword.lower().replace(" ", "-").replace("'", "")[:50]
-        render_to_html(keyword, content, filename)
-        print(f"✅ Article generated: {filename}.html")
+    main()
