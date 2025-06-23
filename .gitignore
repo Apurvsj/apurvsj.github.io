@@ -24,3 +24,5 @@ playwright/.cache/
 # OS
 .DS_Store
 Thumbs.db
+
+.env
