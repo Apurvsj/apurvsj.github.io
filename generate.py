@@ -23,7 +23,7 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
     current_words = set(current_title.lower().split())
 
     def clean_title_from_filename(filename):
-        name = filename.replace(".html", "").replace("-", " ")
+        name = os.path.splitext(os.path.basename(filename))[0].replace("-", " ")
         return re.sub(r'\s+', ' ', name).strip()
 
     similarity_scores = []
@@ -43,11 +43,11 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
 
     if parent_title:
         parent_slug = slugify(parent_title)
-        links.append(f'<li><a href="{parent_slug}.html">← Back to: {parent_title.title()}</a></li>')
+        links.append(f'<li><a href="{parent_slug}.html">← Back to: {parent_title}</a></li>')
 
     links += [
-        f'<li><a href="{filename}">{title.title()}</a></li>'
-        for _, filename, title in related
+        f'<li><a href="{file}">{title}</a></li>'
+        for _, file, title in related
     ]
     return links
 
@@ -59,7 +59,7 @@ def generate_article(keyword, parent=None):
     filepath = os.path.join(ARTICLES_DIR, filename)
 
     if os.path.exists(filepath):
-        print(f"⏭️ Skipping existing article: {filename}")
+        print(f"⏯️ Skipping existing article: {filename}")
         return filename
 
     prompt = f"Write a detailed, SEO-optimized blog article on: '{keyword}'. Use headings, bullet points, and an engaging, news-style tone. Mention key facts, examples, and structure it well."
@@ -89,12 +89,36 @@ def generate_article(keyword, parent=None):
         """.format("\n".join(related_links))
 
     # 📄 Write article
+    schema = f"""
+    <script type=\"application/ld+json\">
+    {{
+      \"@context\": \"https://schema.org\",
+      \"@type\": \"Article\",
+      \"headline\": \"{title}\",
+      \"datePublished\": \"{datetime.now().date()}\",
+      \"author\": {{
+        \"@type\": \"Person\",
+        \"name\": \"Apurv Jha\"
+      }},
+      \"publisher\": {{
+        \"@type\": \"Organization\",
+        \"name\": \"AI SEO Blog\",
+        \"logo\": {{
+          \"@type\": \"ImageObject\",
+          \"url\": \"https://apurvsj.github.io/seo-blog/logo.png\"
+        }}
+      }}
+    }}
+    </script>
+    """
+
     article_html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset=\"UTF-8\">
     <title>{title}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    {schema}
 </head>
 <body>
     <h1>{title}</h1>
@@ -122,7 +146,7 @@ def fetch_trending_keywords(n=10):
         titles = [article["title"] for article in articles if article.get("title")]
         return list(set(titles))[:n]
     except Exception as e:
-        print("⚠️ Failed to fetch trending topics:", e)
+        print("\u26a0\ufe0f Failed to fetch trending topics:", e)
         return []
 
 if __name__ == "__main__":
