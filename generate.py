@@ -1,5 +1,6 @@
 import os
 import re
+import requests
 from datetime import datetime
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -11,11 +12,13 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 ARTICLES_DIR = "articles"
 os.makedirs(ARTICLES_DIR, exist_ok=True)
 
-# 🔠 Convert text to slug format for filename
+GNEWS_API_KEY = os.getenv("GNEWS_API_KEY")  # put this in .env
+
+# 🔠 Slugify filename
 def slugify(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
 
-# 🔗 Generate related links from existing articles
+# 🔗 Get related article links
 def get_related_articles(current_title, parent_title=None, top_n=3):
     current_words = set(current_title.lower().split())
 
@@ -38,27 +41,28 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
     related = sorted(similarity_scores, key=lambda x: -x[0])[:top_n]
     links = []
 
-    # ➕ Optional: Backlink to parent if provided
     if parent_title:
         parent_slug = slugify(parent_title)
         links.append(f'<li><a href="{ARTICLES_DIR}/{parent_slug}.html">← Back to: {parent_title.title()}</a></li>')
 
-    # Add other similar links
     links += [
         f'<li><a href="{ARTICLES_DIR}/{filename}">{title.title()}</a></li>'
         for _, filename, title in related
     ]
-
     return links
 
-# 🧠 Generate one article and save as HTML
+# ✍️ Generate one article
 def generate_article(keyword, parent=None):
     title = keyword.strip().title()
     slug = slugify(title)
     filename = f"{slug}.html"
     filepath = os.path.join(ARTICLES_DIR, filename)
 
-    prompt = f"Write a detailed, SEO-optimized news-style blog article on: '{keyword}'. Use headings, bullet points, and a zingy, engaging tone. Include stats, quotes, or examples if needed. Structure the content well."
+    if os.path.exists(filepath):
+        print(f"⏭️ Skipping existing article: {filename}")
+        return filename
+
+    prompt = f"Write a detailed, SEO-optimized blog article on: '{keyword}'. Use headings, bullet points, and an engaging, news-style tone. Mention key facts, examples, and structure it well."
 
     messages: list[ChatCompletionMessageParam] = [
         {"role": "user", "content": prompt}
@@ -72,7 +76,7 @@ def generate_article(keyword, parent=None):
 
     content = response.choices[0].message.content
 
-    # 🔗 Add related and backlink HTML
+    # 🔗 Related links
     related_links = get_related_articles(title, parent_title=parent)
     related_html = ""
     if related_links:
@@ -84,6 +88,7 @@ def generate_article(keyword, parent=None):
         </ul>
         """.format("\n".join(related_links))
 
+    # 📄 Write article
     article_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -106,3 +111,21 @@ def generate_article(keyword, parent=None):
 
     print(f"✅ Article saved to {filepath}")
     return filename
+
+# 🔥 Fetch trending topics from GNews
+def fetch_trending_keywords(n=10):
+    url = f"https://gnews.io/api/v4/top-headlines?lang=en&country=in&max={n}&token={GNEWS_API_KEY}"
+    try:
+        res = requests.get(url)
+        res.raise_for_status()
+        articles = res.json().get("articles", [])
+        titles = [article["title"] for article in articles if article.get("title")]
+        return list(set(titles))[:n]
+    except Exception as e:
+        print("⚠️ Failed to fetch trending topics:", e)
+        return []
+
+if __name__ == "__main__":
+    trending = fetch_trending_keywords()
+    for topic in trending:
+        generate_article(topic)

@@ -1,22 +1,17 @@
 import subprocess
-from generate import generate_article
 from index_updater import update_index
+from generate import fetch_trending_keywords, generate_article
 
-# 🧠 Step 1: Define your article topics (can be automated with GNews/Trends)
-keywords = [
-    "Health benefits of turmeric",
-    "Side effects of too much green tea",
-    "Top AI tools for SEO in 2025",
-    "Why Google favors fast-loading pages",
-    "Best way to lose belly fat without gym"
-]
+# 🔥 Trending topics
+trending = fetch_trending_keywords()
 
-# 📝 Step 2: Generate articles
-for keyword in keywords:
-    generate_article(keyword)
+# ✍️ Generate articles
+for topic in trending:
+    generate_article(topic)
 
-# 🏠 Step 3: Update homepage
+# 🏠 Update homepage
 update_index()
+
 
 # 🚀 Step 4: Git add, commit, push
 subprocess.run(["git", "add", "."])
