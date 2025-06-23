@@ -43,7 +43,7 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
 
     if parent_title:
         parent_slug = slugify(parent_title)
-        links.append(f'<li><a href="{ARTICLES_DIR}/{parent_slug}.html">← Back to: {parent_title.title()}</a></li>')
+        links.append(f'<li><a href="{parent_slug}.html">← Back to: {parent_title.title()}</a></li>')
 
     links += [
         f'<li><a href="{filename}">{title.title()}</a></li>'
