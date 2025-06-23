@@ -11,10 +11,12 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 ARTICLES_DIR = "articles"
 os.makedirs(ARTICLES_DIR, exist_ok=True)
 
+# 🔠 Convert text to slug format for filename
 def slugify(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
 
-def get_related_articles(current_title, articles_dir=ARTICLES_DIR, top_n=3):
+# 🔗 Generate related links from existing articles
+def get_related_articles(current_title, parent_title=None, top_n=3):
     current_words = set(current_title.lower().split())
 
     def clean_title_from_filename(filename):
@@ -23,7 +25,7 @@ def get_related_articles(current_title, articles_dir=ARTICLES_DIR, top_n=3):
 
     similarity_scores = []
 
-    for file in os.listdir(articles_dir):
+    for file in os.listdir(ARTICLES_DIR):
         if not file.endswith(".html"):
             continue
         title = clean_title_from_filename(file)
@@ -34,12 +36,23 @@ def get_related_articles(current_title, articles_dir=ARTICLES_DIR, top_n=3):
         similarity_scores.append((score, file, title))
 
     related = sorted(similarity_scores, key=lambda x: -x[0])[:top_n]
-    return [
-        f'<li><a href="{articles_dir}/{filename}">{title.title()}</a></li>'
+    links = []
+
+    # ➕ Optional: Backlink to parent if provided
+    if parent_title:
+        parent_slug = slugify(parent_title)
+        links.append(f'<li><a href="{ARTICLES_DIR}/{parent_slug}.html">← Back to: {parent_title.title()}</a></li>')
+
+    # Add other similar links
+    links += [
+        f'<li><a href="{ARTICLES_DIR}/{filename}">{title.title()}</a></li>'
         for _, filename, title in related
     ]
 
-def generate_article(keyword):
+    return links
+
+# 🧠 Generate one article and save as HTML
+def generate_article(keyword, parent=None):
     title = keyword.strip().title()
     slug = slugify(title)
     filename = f"{slug}.html"
@@ -59,7 +72,8 @@ def generate_article(keyword):
 
     content = response.choices[0].message.content
 
-    related_links = get_related_articles(title)
+    # 🔗 Add related and backlink HTML
+    related_links = get_related_articles(title, parent_title=parent)
     related_html = ""
     if related_links:
         related_html = """
