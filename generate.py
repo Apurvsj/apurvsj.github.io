@@ -46,7 +46,7 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
         links.append(f'<li><a href="{ARTICLES_DIR}/{parent_slug}.html">← Back to: {parent_title.title()}</a></li>')
 
     links += [
-        f'<li><a href="{ARTICLES_DIR}/{filename}">{title.title()}</a></li>'
+        f'<li><a href="{filename}">{title.title()}</a></li>'
         for _, filename, title in related
     ]
     return links
