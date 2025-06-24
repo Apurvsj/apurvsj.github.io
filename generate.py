@@ -1,10 +1,37 @@
 import os
 import re
 import requests
+import time
 from datetime import datetime
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from openai import RateLimitError
+import random, time
+
+
+import random
+import openai
+from openai import RateLimitError, APIError, Timeout
+
+def safe_completion(client, **kwargs):
+    max_retries = 6
+    base_wait = 10  # start with 10s wait
+    for attempt in range(max_retries):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except RateLimitError:
+            wait_time = base_wait + random.randint(1, 5) + attempt * 5
+            print(f"🔁 Rate limit hit. Retrying in {wait_time}s...")
+            time.sleep(wait_time)
+        except (APIError, Timeout) as e:
+            print(f"⚠️ API error: {e}. Retrying...")
+            time.sleep(5 * (attempt + 1))
+        except Exception as e:
+            print(f"❌ Other error: {e}")
+            break
+    raise Exception("❌ Failed after multiple retries.")
+
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -12,9 +39,15 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 ARTICLES_DIR = "articles"
 os.makedirs(ARTICLES_DIR, exist_ok=True)
 
-GNEWS_API_KEY = os.getenv("GNEWS_API_KEY")  # put this in .env
+GNEWS_API_KEY = os.getenv("GNEWS_API_KEY")
 
-# 🔠 Slugify filename
+# ✅ Your AdSense publisher code (replace with your actual ID)
+ADSENSE_SCRIPT = """
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8503468188860862"
+     crossorigin="anonymous"></script>
+"""
+
+# 🔠 Slugify title
 def slugify(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
 
@@ -23,7 +56,7 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
     current_words = set(current_title.lower().split())
 
     def clean_title_from_filename(filename):
-        name = os.path.splitext(os.path.basename(filename))[0].replace("-", " ")
+        name = filename.replace(".html", "").replace("-", " ")
         return re.sub(r'\s+', ' ', name).strip()
 
     similarity_scores = []
@@ -43,11 +76,14 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
 
     if parent_title:
         parent_slug = slugify(parent_title)
-        links.append(f'<li><a href="{parent_slug}.html">← Back to: {parent_title}</a></li>')
+        clean_parent = re.sub(r'(?i)^articles[/-]+', '', parent_title.strip())
+        parent_slug = slugify(clean_parent)
+        links.append(f'<li><a href="{parent_slug}.html">← Back to: {clean_parent.title()}</a></li>')
+
 
     links += [
-        f'<li><a href="{file}">{title}</a></li>'
-        for _, file, title in related
+        f'<li><a href="{filename}">{title.title()}</a></li>'
+        for _, filename, title in related
     ]
     return links
 
@@ -59,7 +95,7 @@ def generate_article(keyword, parent=None):
     filepath = os.path.join(ARTICLES_DIR, filename)
 
     if os.path.exists(filepath):
-        print(f"⏯️ Skipping existing article: {filename}")
+        print(f"⏭️ Skipping existing article: {filename}")
         return filename
 
     prompt = f"Write a detailed, SEO-optimized blog article on: '{keyword}'. Use headings, bullet points, and an engaging, news-style tone. Mention key facts, examples, and structure it well."
@@ -68,10 +104,12 @@ def generate_article(keyword, parent=None):
         {"role": "user", "content": prompt}
     ]
 
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=messages,
-        temperature=0.8
+    response = safe_completion(
+    client,
+    model="gpt-3.5-turbo",
+    messages=messages,
+    temperature=0.8,
+    max_tokens=800
     )
 
     content = response.choices[0].message.content
@@ -88,37 +126,14 @@ def generate_article(keyword, parent=None):
         </ul>
         """.format("\n".join(related_links))
 
-    # 📄 Write article
-    schema = f"""
-    <script type=\"application/ld+json\">
-    {{
-      \"@context\": \"https://schema.org\",
-      \"@type\": \"Article\",
-      \"headline\": \"{title}\",
-      \"datePublished\": \"{datetime.now().date()}\",
-      \"author\": {{
-        \"@type\": \"Person\",
-        \"name\": \"Apurv Jha\"
-      }},
-      \"publisher\": {{
-        \"@type\": \"Organization\",
-        \"name\": \"AI SEO Blog\",
-        \"logo\": {{
-          \"@type\": \"ImageObject\",
-          \"url\": \"https://apurvsj.github.io/seo-blog/logo.png\"
-        }}
-      }}
-    }}
-    </script>
-    """
-
+    # 📄 HTML content
     article_html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <meta charset=\"UTF-8\">
+    <meta charset="UTF-8">
     <title>{title}</title>
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-    {schema}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {ADSENSE_SCRIPT}
 </head>
 <body>
     <h1>{title}</h1>
@@ -136,8 +151,8 @@ def generate_article(keyword, parent=None):
     print(f"✅ Article saved to {filepath}")
     return filename
 
-# 🔥 Fetch trending topics from GNews
-def fetch_trending_keywords(n=10):
+# 🔥 Fetch trending topics
+def fetch_trending_keywords(n=5):
     url = f"https://gnews.io/api/v4/top-headlines?lang=en&country=in&max={n}&token={GNEWS_API_KEY}"
     try:
         res = requests.get(url)
@@ -146,7 +161,7 @@ def fetch_trending_keywords(n=10):
         titles = [article["title"] for article in articles if article.get("title")]
         return list(set(titles))[:n]
     except Exception as e:
-        print("\u26a0\ufe0f Failed to fetch trending topics:", e)
+        print("⚠️ Failed to fetch trending topics:", e)
         return []
 
 if __name__ == "__main__":

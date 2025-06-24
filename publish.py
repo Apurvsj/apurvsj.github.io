@@ -22,7 +22,7 @@ def generate_subtopics(root_topic):
     text = response.choices[0].message.content.strip()
     # 🧼 Clean list
     subtopics = [line.strip("-•1234567890. ").strip() for line in text.splitlines() if line.strip()]
-    return subtopics[:3]
+    return subtopics[:1]
 
 # 🧠 Generate article clusters
 for root in root_topics:
