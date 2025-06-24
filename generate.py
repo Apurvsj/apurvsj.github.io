@@ -127,12 +127,35 @@ def generate_article(keyword, parent=None):
         """.format("\n".join(related_links))
 
     # 📄 HTML content
+# ... (all code above remains unchanged)
+
+    # 📄 HTML content
+    description = content.split('\n')[0][:160]
+    url = f"https://apurvsj.github.io/articles/{filename}"
+
+    # JSON-LD schema
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": title,
+        "author": {"@type": "Person", "name": "Apurv Jha"},
+        "datePublished": datetime.now().strftime("%Y-%m-%d"),
+        "publisher": {"@type": "Organization", "name": "apurvsj.github.io"},
+        "description": description,
+        "mainEntityOfPage": url
+    }
+    schema_json = json.dumps(schema, indent=2)
+
     article_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>{title}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{description}">
+    <script type="application/ld+json">
+{schema_json}
+    </script>
     {ADSENSE_SCRIPT}
 </head>
 <body>
@@ -144,6 +167,26 @@ def generate_article(keyword, parent=None):
 </body>
 </html>
 """
+
+# ... (rest of code unchanged)
+    
+#    article_html = f"""<!DOCTYPE html>
+#<html>
+#<head>
+#   <meta charset="UTF-8">
+#    <title>{title}</title>
+#    <meta name="viewport" content="width=device-width, initial-scale=1">
+#    {ADSENSE_SCRIPT}
+#</head>
+#<body>
+#    <h1>{title}</h1>
+#    <p><em>Published on {datetime.now().strftime("%B %d, %Y")}</em></p>
+#    <hr>
+#    {content}
+#    {related_html}
+#</body>
+#</html>
+#"""
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(article_html)
