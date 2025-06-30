@@ -8,16 +8,14 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai import RateLimitError
-import random, time
-from collections import defaultdict
-
 import random
-import openai
-from openai import RateLimitError, APIError, Timeout
+from collections import defaultdict
+from openai import APIError, Timeout
+
 
 def safe_completion(client, **kwargs):
     max_retries = 6
-    base_wait = 10  # start with 10s wait
+    base_wait = 10
     for attempt in range(max_retries):
         try:
             return client.chat.completions.create(**kwargs)
@@ -32,6 +30,7 @@ def safe_completion(client, **kwargs):
             print(f"❌ Other error: {e}")
             break
     raise Exception("❌ Failed after multiple retries.")
+
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -57,7 +56,6 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
         return re.sub(r'\s+', ' ', name).strip()
 
     similarity_scores = []
-
     for file in os.listdir(ARTICLES_DIR):
         if not file.endswith(".html"):
             continue
@@ -70,13 +68,10 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
 
     related = sorted(similarity_scores, key=lambda x: -x[0])[:top_n]
     links = []
-
     if parent_title:
-        parent_slug = slugify(parent_title)
         clean_parent = re.sub(r'(?i)^articles[/-]+', '', parent_title.strip())
         parent_slug = slugify(clean_parent)
         links.append(f'<li><a href="{parent_slug}.html">← Back to: {clean_parent.title()}</a></li>')
-
     links += [
         f'<li><a href="{filename}">{title.title()}</a></li>'
         for _, filename, title in related
@@ -122,6 +117,14 @@ Write the article in clean HTML format only (no markdown or plain text).
 
     content = response.choices[0].message.content
 
+    # Fix common SEO issues:
+    content = re.sub(r'<title>.*?</title>', '', content, flags=re.IGNORECASE | re.DOTALL)
+    content = re.sub(r'<h1>.*?</h1>', '', content, flags=re.IGNORECASE | re.DOTALL)
+
+    text_only = re.sub(r'<[^>]+>', '', content)
+    description = text_only.strip().split('\n')[0][:160] or title
+    seo_title = title[:65] + ("…" if len(title) > 65 else "")
+
     related_links = get_related_articles(title, parent_title=parent)
     related_html = ""
     if related_links:
@@ -133,9 +136,7 @@ Write the article in clean HTML format only (no markdown or plain text).
         </ul>
         """.format("\n".join(related_links))
 
-    description = content.split('\n')[0][:160]
     url = f"https://apurvsj.github.io/articles/{filename}"
-
     schema = {
         "@context": "https://schema.org",
         "@type": "Article",
@@ -151,11 +152,11 @@ Write the article in clean HTML format only (no markdown or plain text).
     article_html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>{title}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="{description}">
-    <script type="application/ld+json">
+    <meta charset=\"UTF-8\">
+    <title>{seo_title}</title>
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <meta name=\"description\" content=\"{description}\">
+    <script type=\"application/ld+json\">
 {schema_json}
     </script>
     {ADSENSE_SCRIPT}
@@ -195,8 +196,8 @@ def update_sitemap():
 
     try:
         files = [f for f in os.listdir(ARTICLES_DIR) if f.endswith(".html")]
-        urlset = ['<?xml version="1.0" encoding="UTF-8"?>',
-          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+        urlset = ['<?xml version="1.0" encoding="UTF-8"?>']
+        urlset.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
 
         for f in files:
             url_entry = f"""  <url>
@@ -274,7 +275,7 @@ def update_homepage_index():
 
     html_content += '''
   <footer>
-    Made with ❤️ using GPT · <a href="https://github.com/apurvsj">View Source</a>
+    Made with ❤️ using GPT · <a href="https://github.com/apurvsj/apurvsj.github.io">View Source</a>
   </footer>
 </body>
 </html>
