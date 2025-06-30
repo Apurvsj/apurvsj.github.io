@@ -9,7 +9,7 @@ from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai import RateLimitError
 import random, time
-
+from collections import defaultdict
 
 import random
 import openai
@@ -33,7 +33,6 @@ def safe_completion(client, **kwargs):
             break
     raise Exception("❌ Failed after multiple retries.")
 
-
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -42,17 +41,14 @@ os.makedirs(ARTICLES_DIR, exist_ok=True)
 
 GNEWS_API_KEY = os.getenv("GNEWS_API_KEY")
 
-# ✅ Your AdSense publisher code (replace with your actual ID)
 ADSENSE_SCRIPT = """
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8503468188860862"
      crossorigin="anonymous"></script>
 """
 
-# 🔠 Slugify title
 def slugify(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
 
-# 🔗 Get related article links
 def get_related_articles(current_title, parent_title=None, top_n=3):
     current_words = set(current_title.lower().split())
 
@@ -81,14 +77,12 @@ def get_related_articles(current_title, parent_title=None, top_n=3):
         parent_slug = slugify(clean_parent)
         links.append(f'<li><a href="{parent_slug}.html">← Back to: {clean_parent.title()}</a></li>')
 
-
     links += [
         f'<li><a href="{filename}">{title.title()}</a></li>'
         for _, filename, title in related
     ]
     return links
 
-# ✍️ Generate one article
 def generate_article(keyword, parent=None):
     title = keyword.strip().title()
     slug = slugify(title)
@@ -119,16 +113,15 @@ Write the article in clean HTML format only (no markdown or plain text).
     ]
 
     response = safe_completion(
-    client,
-    model="gpt-3.5-turbo",
-    messages=messages,
-    temperature=0.8,
-    max_tokens=800
+        client,
+        model="gpt-3.5-turbo",
+        messages=messages,
+        temperature=0.8,
+        max_tokens=800
     )
 
     content = response.choices[0].message.content
 
-    # 🔗 Related links
     related_links = get_related_articles(title, parent_title=parent)
     related_html = ""
     if related_links:
@@ -140,14 +133,9 @@ Write the article in clean HTML format only (no markdown or plain text).
         </ul>
         """.format("\n".join(related_links))
 
-    # 📄 HTML content
-# ... (all code above remains unchanged)
-
-    # 📄 HTML content
     description = content.split('\n')[0][:160]
     url = f"https://apurvsj.github.io/articles/{filename}"
 
-    # JSON-LD schema
     schema = {
         "@context": "https://schema.org",
         "@type": "Article",
@@ -182,33 +170,12 @@ Write the article in clean HTML format only (no markdown or plain text).
 </html>
 """
 
-# ... (rest of code unchanged)
-    
-#    article_html = f"""<!DOCTYPE html>
-#<html>
-#<head>
-#   <meta charset="UTF-8">
-#    <title>{title}</title>
-#    <meta name="viewport" content="width=device-width, initial-scale=1">
-#    {ADSENSE_SCRIPT}
-#</head>
-#<body>
-#    <h1>{title}</h1>
-#    <p><em>Published on {datetime.now().strftime("%B %d, %Y")}</em></p>
-#    <hr>
-#    {content}
-#    {related_html}
-#</body>
-#</html>
-#"""
-
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(article_html)
 
     print(f"✅ Article saved to {filepath}")
     return filename
 
-# 🔥 Fetch trending topics
 def fetch_trending_keywords(n=5):
     url = f"https://gnews.io/api/v4/top-headlines?lang=en&country=in&max={n}&token={GNEWS_API_KEY}"
     try:
@@ -247,9 +214,79 @@ def update_sitemap():
     except Exception as e:
         print("❌ Failed to update sitemap.xml:", e)
 
+def update_homepage_index():
+    TOPIC_KEYWORDS = {
+        "Science & Tech": ["nasa", "galaxy", "asteroid", "quantum", "camera", "exploration", "science"],
+        "Gadgets & Launches": ["launch", "vivo", "iphone", "samsung", "xiaomi", "camera", "sale"],
+        "Sports": ["cricket", "match", "pant", "tournament"],
+        "Global Affairs": ["iran", "us", "israel", "global", "conflict", "strike"],
+        "Health": ["health", "diet", "supplement", "fitness", "kidney", "heart", "attack"],
+        "General News": ["train", "india", "update", "report", "news", "incident"]
+    }
+
+    grouped_articles = defaultdict(list)
+
+    for filename in os.listdir(ARTICLES_DIR):
+        if filename.endswith(".html"):
+            name = filename.replace(".html", "").replace("-", " ").lower()
+            title = filename.replace(".html", "").replace("-", " ").title()
+            url = f"{ARTICLES_DIR}/{filename}"
+            matched = False
+            for topic, keywords in TOPIC_KEYWORDS.items():
+                if any(kw in name for kw in keywords):
+                    grouped_articles[topic].append((title, url))
+                    matched = True
+                    break
+            if not matched:
+                grouped_articles["Other"].append((title, url))
+
+    html_content = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI SEO Blog by GPT</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background-color: #f9f9f9; color: #222; padding: 1rem; }
+    header { text-align: center; padding: 2rem 1rem; background-color: #4e54c8; color: white; }
+    h1 { margin: 0; font-size: 2rem; }
+    h2 { margin-top: 2rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 0.3rem; }
+    ul { list-style-type: none; padding-left: 0; }
+    li { background: white; margin: 0.5rem 0; padding: 0.6rem 1rem; border-radius: 10px;
+         box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: 0.2s ease; }
+    li:hover { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+    a { text-decoration: none; color: #2c3e50; font-weight: 500; }
+    a:hover { color: #4e54c8; }
+    footer { margin: 3rem 0; text-align: center; font-size: 0.9rem; color: #777; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📰 The Daily Pulse</h1>
+    <p>Your front row seat to what's happening now</p>
+  </header>
+'''
+    for topic, articles in grouped_articles.items():
+        html_content += f"<h2>{topic}</h2>\n<ul>\n"
+        for title, url in articles:
+            html_content += f'  <li><a href="{url}">{title}</a></li>\n'
+        html_content += "</ul>\n"
+
+    html_content += '''
+  <footer>
+    Made with ❤️ using GPT · <a href="https://github.com/apurvsj">View Source</a>
+  </footer>
+</body>
+</html>
+'''
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("✅ index.html updated with grouped article sections.")
+
 if __name__ == "__main__":
     trending = fetch_trending_keywords()
     for topic in trending:
         generate_article(topic)
-    
+
     update_sitemap()
+    update_homepage_index()
