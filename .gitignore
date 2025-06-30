@@ -1,0 +1,28 @@
+# Virtual environments
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Logs & temporary files
+*.log
+*.tmp
+
+# Build artifacts
+build/
+dist/
+
+# Playwright
+.playwright/
+playwright/.cache/
+
+# Jupyter & IDE
+.ipynb_checkpoints/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+.env
