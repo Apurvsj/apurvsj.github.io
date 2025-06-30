@@ -99,7 +99,20 @@ def generate_article(keyword, parent=None):
         print(f"⏭️ Skipping existing article: {filename}")
         return filename
 
-    prompt = f"Write a detailed, SEO-optimized blog article on: '{keyword}'. Use headings, bullet points, and an engaging, news-style tone. Mention key facts, examples, and structure it well."
+    prompt = f"""
+Write a high-quality, SEO-optimized blog article about: "{keyword}"
+
+Requirements:
+- Start with a strong, engaging introduction
+- Use proper HTML tags: <h2> for headings, <ul>/<li> for bullet points
+- Add at least 1 FAQ section at the end with 2–3 common questions and answers
+- Keep tone informative but natural (news-style, not robotic)
+- Break long text into smaller paragraphs
+- Include relevant facts or examples to increase authority
+- Avoid repetition
+
+Write the article in clean HTML format only (no markdown or plain text).
+"""
 
     messages: list[ChatCompletionMessageParam] = [
         {"role": "user", "content": prompt}
