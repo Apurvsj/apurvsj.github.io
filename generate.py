@@ -195,8 +195,8 @@ def update_sitemap():
 
     try:
         files = [f for f in os.listdir(ARTICLES_DIR) if f.endswith(".html")]
-        urlset = ['<?xml version="1.0" encoding="UTF-8"?>']
-        urlset.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+        urlset = ['<?xml version="1.0" encoding="UTF-8"?>',
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
 
         for f in files:
             url_entry = f"""  <url>
