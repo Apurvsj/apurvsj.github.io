@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 ARTICLES_DIR = "articles"
-BASE_URL = "https://apurvsj.github.io/seo-blog"
+BASE_URL = "https://apurvsj.github.io/"
 
 def generate_sitemap():
     urls = []

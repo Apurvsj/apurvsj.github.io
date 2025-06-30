@@ -221,7 +221,35 @@ def fetch_trending_keywords(n=5):
         print("⚠️ Failed to fetch trending topics:", e)
         return []
 
+def update_sitemap():
+    sitemap_path = "sitemap.xml"
+    base_url = "https://apurvsj.github.io/articles/"
+    today = datetime.today().strftime("%Y-%m-%d")
+
+    try:
+        files = [f for f in os.listdir(ARTICLES_DIR) if f.endswith(".html")]
+        urlset = ['<?xml version="1.0" encoding="UTF-8"?>']
+        urlset.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+
+        for f in files:
+            url_entry = f"""  <url>
+    <loc>{base_url}{f}</loc>
+    <lastmod>{today}</lastmod>
+  </url>"""
+            urlset.append(url_entry)
+
+        urlset.append('</urlset>')
+
+        with open(sitemap_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(urlset))
+
+        print(f"✅ sitemap.xml updated with {len(files)} articles.")
+    except Exception as e:
+        print("❌ Failed to update sitemap.xml:", e)
+
 if __name__ == "__main__":
     trending = fetch_trending_keywords()
     for topic in trending:
         generate_article(topic)
+    
+    update_sitemap()
