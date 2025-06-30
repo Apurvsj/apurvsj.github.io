@@ -117,7 +117,7 @@ Write the article in clean HTML format only (no markdown or plain text).
         model="gpt-3.5-turbo",
         messages=messages,
         temperature=0.8,
-        max_tokens=800
+        max_tokens=900
     )
 
     content = response.choices[0].message.content
@@ -190,7 +190,7 @@ def fetch_trending_keywords(n=5):
 
 def update_sitemap():
     sitemap_path = "sitemap.xml"
-    base_url = "https://apurvsj.github.io/articles/"
+    base_url = "https://apurvsj.github.io/"
     today = datetime.today().strftime("%Y-%m-%d")
 
     try:
