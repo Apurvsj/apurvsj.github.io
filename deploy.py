@@ -40,12 +40,22 @@ def copy_articles():
 def git_push():
     print("📤 Pushing to GitHub...")
     try:
+        # Stage changes first
         subprocess.run(["git", "add", "."], cwd=TARGET_DIR, check=True)
-        subprocess.run(["git", "commit", "-m", "🔄 Auto update content"], cwd=TARGET_DIR, check=True)
+
+        # Commit changes (even if nothing changed, use --allow-empty just in case)
+        subprocess.run(["git", "commit", "-m", "🔄 Auto update content", "--allow-empty"], cwd=TARGET_DIR, check=True)
+
+        # Now pull and rebase safely
+        subprocess.run(["git", "pull", "--rebase"], cwd=TARGET_DIR, check=True)
+
+        # Finally, push
         subprocess.run(["git", "push"], cwd=TARGET_DIR, check=True)
         print("🚀 Git push successful.")
     except subprocess.CalledProcessError as e:
         print(f"❌ Git error: {e}")
+
+
 
 if __name__ == "__main__":
     run_generate()
