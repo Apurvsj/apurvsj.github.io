@@ -34,8 +34,15 @@ def copy_articles():
 
     if os.path.exists(dest_folder):
         shutil.rmtree(dest_folder, onerror=handle_remove_readonly)
+
     shutil.copytree(src_folder, dest_folder)
-    print("✅ Articles copied.")
+    print("✅ Articles copied from SEO folder to GitHub folder.")
+
+    # 🔍 Debug: print copied files
+    for root, _, files in os.walk(dest_folder):
+        for file in files:
+            print("📄 Copied:", os.path.join(root, file))
+
 
 def git_push():
     print("📤 Pushing to GitHub...")
