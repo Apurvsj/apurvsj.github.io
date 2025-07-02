@@ -37,6 +37,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 ARTICLES_DIR = "articles"
 os.makedirs(ARTICLES_DIR, exist_ok=True)
+print(f"🔍 Saving articles to: {os.path.abspath(ARTICLES_DIR)}")
 
 GNEWS_API_KEY = os.getenv("GNEWS_API_KEY")
 
@@ -171,10 +172,12 @@ Write the article in clean HTML format only (no markdown or plain text).
 </html>
 """
 
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(article_html)
-
-    print(f"✅ Article saved to {filepath}")
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(article_html)
+        print(f"✅ Article written: {filepath}")
+    except Exception as e:
+        print(f"❌ Failed to write article {filename}: {e}")
     return filename
 
 def fetch_trending_keywords(n=5):
