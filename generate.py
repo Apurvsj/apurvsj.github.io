@@ -230,7 +230,10 @@ def update_homepage_index():
 
     grouped_articles = defaultdict(list)
 
-    for filename in sorted(os.listdir(ARTICLES_DIR), reverse=True):
+    files = [f for f in os.listdir(ARTICLES_DIR) if f.endswith(".html")]
+    files = sorted(files, key=lambda f: os.path.getmtime(os.path.join(ARTICLES_DIR, f)), reverse=True)
+
+for filename in files:
         if filename.endswith(".html"):
             name = filename.replace(".html", "").replace("-", " ").lower()
             title = filename.replace(".html", "").replace("-", " ").title()
