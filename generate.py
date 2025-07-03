@@ -343,6 +343,44 @@ def update_all_articles_page():
         f.write(html)
     print("✅ all.html created with links to all articles.")
 
+def update_topic_pages(grouped_articles):
+    for topic, articles in grouped_articles.items():
+        slug = slugify(topic)
+        filename = f"{slug}.html"
+
+        html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{topic} Articles | apurvsj.github.io</title>
+  <style>
+    body {{ font-family: sans-serif; background: #f8f9fa; padding: 2rem; color: #333; }}
+    h1 {{ text-align: center; }}
+    ul {{ list-style-type: none; padding: 0; max-width: 800px; margin: 2rem auto; }}
+    li {{ background: #fff; margin: 10px 0; padding: 1rem; border-radius: 8px;
+         box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: 0.2s ease; }}
+    li:hover {{ transform: scale(1.01); }}
+    a {{ text-decoration: none; color: #0077cc; font-weight: bold; }}
+    a:hover {{ color: #005fa3; }}
+  </style>
+</head>
+<body>
+  <h1>🗂️ {topic} Articles</h1>
+  <ul>
+'''
+
+        for title, url in articles:
+            html += f'    <li><a href="{url}">{title}</a></li>\n'
+
+        html += f'''  </ul>
+  <p style="text-align: center; color: #777;">Updated on {datetime.now().strftime("%B %d, %Y")}</p>
+</body>
+</html>'''
+
+        with open(f"{filename}", "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"✅ {filename} generated.")
 
 if __name__ == "__main__":
     trending = fetch_trending_keywords()
@@ -352,3 +390,4 @@ if __name__ == "__main__":
     update_sitemap()
     update_homepage_index()
     update_all_articles_page()
+    update_topic_pages(grouped_articles)
