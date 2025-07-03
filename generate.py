@@ -1,3 +1,5 @@
+# generate.py
+
 import os
 import re
 import requests
@@ -7,11 +9,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
-from openai import RateLimitError
+from openai import RateLimitError, APIError, Timeout
 import random
 from collections import defaultdict
-from openai import APIError, Timeout
-
 
 def safe_completion(client, **kwargs):
     max_retries = 6
@@ -30,7 +30,6 @@ def safe_completion(client, **kwargs):
             print(f"❌ Other error: {e}")
             break
     raise Exception("❌ Failed after multiple retries.")
-
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -118,7 +117,6 @@ Write the article in clean HTML format only (no markdown or plain text).
 
     content = response.choices[0].message.content
 
-    # Fix common SEO issues:
     content = re.sub(r'<title>.*?</title>', '', content, flags=re.IGNORECASE | re.DOTALL)
     content = re.sub(r'<h1>.*?</h1>', '', content, flags=re.IGNORECASE | re.DOTALL)
 
@@ -153,11 +151,11 @@ Write the article in clean HTML format only (no markdown or plain text).
     article_html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <meta charset=\"UTF-8\">
+    <meta charset="UTF-8">
     <title>{seo_title}</title>
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-    <meta name=\"description\" content=\"{description}\">
-    <script type=\"application/ld+json\">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{description}">
+    <script type="application/ld+json">
 {schema_json}
     </script>
     {ADSENSE_SCRIPT}
@@ -194,7 +192,7 @@ def fetch_trending_keywords(n=5):
 
 def update_sitemap():
     sitemap_path = "sitemap.xml"
-    base_url = "https://apurvsj.github.io/"
+    base_url = "https://apurvsj.github.io/articles/"
     today = datetime.today().strftime("%Y-%m-%d")
 
     try:
@@ -229,23 +227,21 @@ def update_homepage_index():
     }
 
     grouped_articles = defaultdict(list)
-
     files = [f for f in os.listdir(ARTICLES_DIR) if f.endswith(".html")]
     files = sorted(files, key=lambda f: os.path.getmtime(os.path.join(ARTICLES_DIR, f)), reverse=True)
 
     for filename in files:
-        if filename.endswith(".html"):
-            name = filename.replace(".html", "").replace("-", " ").lower()
-            title = filename.replace(".html", "").replace("-", " ").title()
-            url = f"{ARTICLES_DIR}/{filename}"
-            matched = False
-            for topic, keywords in TOPIC_KEYWORDS.items():
-                if any(kw in name for kw in keywords):
-                    grouped_articles[topic].append((title, url))
-                    matched = True
-                    break
-            if not matched:
-                grouped_articles["Other"].append((title, url))
+        name = filename.replace(".html", "").replace("-", " ").lower()
+        title = filename.replace(".html", "").replace("-", " ").title()
+        url = f"{ARTICLES_DIR}/{filename}"
+        matched = False
+        for topic, keywords in TOPIC_KEYWORDS.items():
+            if any(kw in name for kw in keywords):
+                grouped_articles[topic].append((title, url))
+                matched = True
+                break
+        if not matched:
+            grouped_articles["Other"].append((title, url))
 
     html_content = '''<!DOCTYPE html>
 <html lang="en">
@@ -299,6 +295,7 @@ def update_homepage_index():
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
     print("✅ index.html updated with card layout and latest articles.")
+    return grouped_articles
 
 def update_all_articles_page():
     files = [
@@ -328,7 +325,6 @@ def update_all_articles_page():
   <h1>🗂️ All Articles</h1>
   <ul>
 '''
-
     for file in files:
         title = file.replace(".html", "").replace("-", " ").title()
         link = f"articles/{file}"
@@ -345,49 +341,44 @@ def update_all_articles_page():
 
 def update_topic_pages(grouped_articles):
     for topic, articles in grouped_articles.items():
-        slug = slugify(topic)
-        filename = f"{slug}.html"
-
-        html = f'''<!DOCTYPE html>
+        filename = f"{slugify(topic)}.html"
+        html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{topic} Articles | apurvsj.github.io</title>
+  <title>{topic} - Articles | apurvsj.github.io</title>
   <style>
-    body {{ font-family: sans-serif; background: #f8f9fa; padding: 2rem; color: #333; }}
-    h1 {{ text-align: center; }}
-    ul {{ list-style-type: none; padding: 0; max-width: 800px; margin: 2rem auto; }}
-    li {{ background: #fff; margin: 10px 0; padding: 1rem; border-radius: 8px;
-         box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: 0.2s ease; }}
-    li:hover {{ transform: scale(1.01); }}
+    body {{ font-family: sans-serif; padding: 2rem; background: #f5f5f5; }}
+    h1 {{ text-align: center; color: #4e54c8; }}
+    ul {{ max-width: 800px; margin: auto; list-style: none; padding: 0; }}
+    li {{ background: #fff; margin: 10px 0; padding: 1rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }}
     a {{ text-decoration: none; color: #0077cc; font-weight: bold; }}
     a:hover {{ color: #005fa3; }}
   </style>
 </head>
 <body>
-  <h1>🗂️ {topic} Articles</h1>
+  <h1>{topic} Articles</h1>
   <ul>
-'''
-
+"""
         for title, url in articles:
-            html += f'    <li><a href="{url}">{title}</a></li>\n'
+            html += f'<li><a href="{url}">{title}</a></li>\n'
 
-        html += f'''  </ul>
-  <p style="text-align: center; color: #777;">Updated on {datetime.now().strftime("%B %d, %Y")}</p>
+        html += '''  </ul>
 </body>
 </html>'''
 
-        with open(f"{filename}", "w", encoding="utf-8") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(html)
-        print(f"✅ {filename} generated.")
+        print(f"✅ Created topic page: {filename}")
 
+# MAIN
 if __name__ == "__main__":
     trending = fetch_trending_keywords()
     for topic in trending:
         generate_article(topic)
 
     update_sitemap()
-    update_homepage_index()
+    grouped = update_homepage_index()
+    update_topic_pages(grouped)
     update_all_articles_page()
-    update_topic_pages(grouped_articles)
