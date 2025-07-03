@@ -230,7 +230,7 @@ def update_homepage_index():
 
     grouped_articles = defaultdict(list)
 
-    for filename in os.listdir(ARTICLES_DIR):
+    for filename in sorted(os.listdir(ARTICLES_DIR), reverse=True):
         if filename.endswith(".html"):
             name = filename.replace(".html", "").replace("-", " ").lower()
             title = filename.replace(".html", "").replace("-", " ").title()
@@ -252,15 +252,17 @@ def update_homepage_index():
   <title>AI SEO Blog by GPT</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background-color: #f9f9f9; color: #222; padding: 1rem; }
-    header { text-align: center; padding: 2rem 1rem; background-color: #4e54c8; color: white; }
+    header { text-align: center; padding: 2rem 1rem; background-color: #4e54c8; color: white; border-radius: 1rem; }
     h1 { margin: 0; font-size: 2rem; }
-    h2 { margin-top: 2rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 0.3rem; }
-    ul { list-style-type: none; padding-left: 0; }
-    li { background: white; margin: 0.5rem 0; padding: 0.6rem 1rem; border-radius: 10px;
-         box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: 0.2s ease; }
-    li:hover { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
-    a { text-decoration: none; color: #2c3e50; font-weight: 500; }
-    a:hover { color: #4e54c8; }
+    .section { margin: 2rem 0; }
+    .card-container { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+    .card { background: white; padding: 1rem; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 300px; }
+    .card h2 { margin-top: 0; color: #4e54c8; }
+    .card ul { list-style-type: none; padding-left: 0; }
+    .card li { margin-bottom: 0.5rem; }
+    .card a { text-decoration: none; color: #2c3e50; }
+    .card a:hover { color: #4e54c8; }
+    .more-link { display: block; text-align: right; font-size: 0.9rem; margin-top: 0.5rem; }
     footer { margin: 3rem 0; text-align: center; font-size: 0.9rem; color: #777; }
   </style>
 </head>
@@ -269,14 +271,19 @@ def update_homepage_index():
     <h1>📰 The Daily Pulse</h1>
     <p>Your front row seat to what's happening now</p>
   </header>
+  <div class="card-container">
 '''
     for topic, articles in grouped_articles.items():
-        html_content += f"<h2>{topic}</h2>\n<ul>\n"
-        for title, url in articles:
-            html_content += f'  <li><a href="{url}">{title}</a></li>\n'
-        html_content += "</ul>\n"
+        short_list = articles[:2]
+        html_content += f'<div class="card"><h2>{topic}</h2><ul>'
+        for title, url in short_list:
+            html_content += f'<li><a href="{url}">{title}</a></li>'
+        html_content += '</ul>'
+        html_content += f'<a class="more-link" href="{slugify(topic)}.html">More &rarr;</a>'
+        html_content += '</div>'
 
     html_content += '''
+  </div>
   <footer>
     Made with ❤️ using GPT · <a href="https://github.com/apurvsj/apurvsj.github.io">View Source</a>
   </footer>
@@ -285,7 +292,7 @@ def update_homepage_index():
 '''
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("✅ index.html updated with grouped article sections.")
+    print("✅ index.html updated with card layout and latest articles.")
 
 if __name__ == "__main__":
     trending = fetch_trending_keywords()
