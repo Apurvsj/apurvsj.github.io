@@ -19,29 +19,29 @@ def run_generate():
     print("▶️ Running generate.py...")
     os.system("python generate.py")
 
-def copy_file(file_name):
-    src = os.path.join(SOURCE_DIR, file_name)
-    dest = os.path.join(TARGET_DIR, file_name)
-    if os.path.exists(src):
-        shutil.copy2(src, dest)
-        print(f"✅ Copied {file_name}")
-    else:
-        print(f"⚠️ File not found: {file_name}")
+# def copy_file(file_name):
+    # src = os.path.join(SOURCE_DIR, file_name)
+    # dest = os.path.join(TARGET_DIR, file_name)
+    # if os.path.exists(src):
+        # shutil.copy2(src, dest)
+        # print(f"✅ Copied {file_name}")
+    # else:
+        # print(f"⚠️ File not found: {file_name}")
 
-def copy_articles():
-    src_folder = os.path.join(SOURCE_DIR, ARTICLES_FOLDER)
-    dest_folder = os.path.join(TARGET_DIR, ARTICLES_FOLDER)
+# def copy_articles():
+    # src_folder = os.path.join(SOURCE_DIR, ARTICLES_FOLDER)
+    # dest_folder = os.path.join(TARGET_DIR, ARTICLES_FOLDER)
 
-    if os.path.exists(dest_folder):
-        shutil.rmtree(dest_folder, onerror=handle_remove_readonly)
+    # if os.path.exists(dest_folder):
+        # shutil.rmtree(dest_folder, onerror=handle_remove_readonly)
 
-    shutil.copytree(src_folder, dest_folder)
-    print("✅ Articles copied from SEO folder to GitHub folder.")
+    # shutil.copytree(src_folder, dest_folder)
+    # print("✅ Articles copied from SEO folder to GitHub folder.")
 
-    # 🔍 Debug: print copied files
-    for root, _, files in os.walk(dest_folder):
-        for file in files:
-            print("📄 Copied:", os.path.join(root, file))
+    # # 🔍 Debug: print copied files
+    # for root, _, files in os.walk(dest_folder):
+        # for file in files:
+            # print("📄 Copied:", os.path.join(root, file))
 
 
 def git_push():
@@ -63,10 +63,6 @@ def git_push():
         print(f"❌ Git error: {e}")
 
 
-
 if __name__ == "__main__":
     run_generate()
-    for file in FILES_TO_COPY:
-        copy_file(file)
-    copy_articles()
     git_push()
