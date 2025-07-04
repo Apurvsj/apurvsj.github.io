@@ -119,6 +119,23 @@ Write the article in clean HTML format only (no markdown or plain text).
 
     content = re.sub(r'<title>.*?</title>', '', content, flags=re.IGNORECASE | re.DOTALL)
     content = re.sub(r'<h1>.*?</h1>', '', content, flags=re.IGNORECASE | re.DOTALL)
+    
+    wow_prompt = f"Give one surprising or lesser-known fact about: {title}. Write in one short paragraph."
+    wow = safe_completion(client, model="gpt-3.5-turbo", messages=[{"role": "user", "content": wow_prompt}], temperature=0.7, max_tokens=150)
+    wow_html = f"""
+<hr>
+<h3>🌟 Did You Know?</h3>
+<p>{wow.choices[0].message.content.strip()}</p>
+"""
+
+    # Expert Insight section
+    insight_prompt = f"Write a short expert insight (2–3 lines) about this topic: {title}. Use a confident tone."
+    insight = safe_completion(client, model="gpt-3.5-turbo", messages=[{"role": "user", "content": insight_prompt}], temperature=0.7, max_tokens=150)
+    insight_html = f"""
+<hr>
+<h3>🧠 Expert Insight</h3>
+<p>{insight.choices[0].message.content.strip()}</p>
+"""
 
     text_only = re.sub(r'<[^>]+>', '', content)
     description = text_only.strip().split('\n')[0][:160] or title
