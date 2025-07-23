@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+    <loc>https://apurvsj.github.io/</loc>
+    <lastmod>2025-07-23</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
   <url>
     <loc>https://apurvsj.github.io/articles/9-things-about-the-liver-a-harvard-doc-wants-everyone-to-know.html</loc>
     <lastmod>2025-07-22</lastmod>
