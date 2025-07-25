@@ -3,6 +3,7 @@ from datetime import datetime
 
 ARTICLES_DIR = "articles"
 BASE_URL = "https://apurvsj.github.io/"
+SITEMAP_FILE = "sitemap.txt"
 
 def generate_sitemap():
     urls = []
@@ -19,7 +20,7 @@ def generate_sitemap():
 {chr(10).join(urls)}
 </urlset>"""
 
-    with open("sitemap.xml", "w", encoding="utf-8") as f:
+    with open("sitemap.txt", "w", encoding="utf-8") as f:
         f.write(sitemap_content)
 
     print("✅ sitemap.xml generated successfully.")
