@@ -3,9 +3,11 @@ from datetime import datetime
 
 ARTICLES_DIR = "articles"
 BASE_URL = "https://apurvsj.github.io/"
-SITEMAP_FILE = "sitemap.txt"
 
 def generate_sitemap():
+    # Create directory if it doesn't exist
+    os.makedirs("sitemaps", exist_ok=True)
+    
     urls = []
     for file in os.listdir(ARTICLES_DIR):
         if file.endswith(".html"):
@@ -14,16 +16,15 @@ def generate_sitemap():
     <loc>{url}</loc>
     <lastmod>{datetime.today().date()}</lastmod>
   </url>""")
-
+    
     sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {chr(10).join(urls)}
 </urlset>"""
-
-    with open("sitemap.txt", "w", encoding="utf-8") as f:
+    
+    with open("sitemaps/sitemap.xml", "w", encoding="utf-8") as f:
         f.write(sitemap_content)
-
-    print("✅ sitemap.xml generated successfully.")
+    print("✅ sitemaps/sitemap.xml generated successfully.")
 
 if __name__ == "__main__":
     generate_sitemap()
